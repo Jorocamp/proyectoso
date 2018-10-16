@@ -22,6 +22,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
+
  
 //********************************************************************** 
 
@@ -30,6 +32,8 @@
 
 char solicitud[255]; //Almacena la solcitud del usuario
 float dificultad; //Guarda la dificultad actual del problema
+
+static int *nivel; // Variable global que almacena el nivel de un Mr. Meeseek
 
 //**********************************************************************
 
@@ -50,9 +54,18 @@ void crearMeeseeks(){
           /*Error*/
 	  fprintf(stderr, "Fork Failed");
      }
+     else if(pid != 0){
+     	  // Padre
+     	  *nivel += 1; // Incrementa variable global
+     	  printf("Hi I'm Mr Meeseeks Dad! Look at Meeeee. (%d, %d, %d, %d)\n", getpid(), getppid(), *nivel, 1);
+     	  wait(NULL);// espera a que el hijo termine, esto para no interrumpir el proceso de impresion.
+     }
      else if (pid == 0){
           //Hijo
-          printf("Hi I'm Mr Meeseeks! Look at Meeeee. (%d, %d, %d, %d)\n", getpid(), getppid(), 1, 1);     	
+     	  *nivel += 1; // incrementa variable global
+          printf("Hi I'm Mr Meeseeks! Look at Meeeee. (%d, %d, %d, %d)\n", getpid(), getppid(), *nivel, 1); 
+          //exit(EXIT_SUCCESS); // dice que ha terminado 	
+     	  return;// tambien se puede usar para decir que ha terminado
      }
 }
 
@@ -61,7 +74,7 @@ void crearMeeseeks(){
 void crearSolicitud(){
      printf("Escriba su solicitud a Mr. Meeseeks: ");
      scanf(" %[^\n]s",solicitud);
-     printf("%s \n", solicitud);
+     solicitarDificultad();
      crearMeeseeks();
 }
 
@@ -83,7 +96,11 @@ void box(){
 //Main
 
 int main(){
-
+	 
+	 nivel = mmap(NULL, sizeof *nivel, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+	 // con esto se hace para hacerlo global entre procesos
+	 *nivel = 0;
+	 // nivel es 0, si se crea un Mr. Meeseek este sera nivel 1.
      box();
 
 
@@ -91,3 +108,4 @@ int main(){
 }
 
 //**********************************************************************
+// gcc proyecto-so.c -o box
